@@ -38,7 +38,7 @@ public class TableMetadata {
 				String name = rs.getString(4);
 				int n = rs.getInt(5);
 				if (debug) {
-					log.info("Scanned column "+name+" is of type "+n);
+					//log.info("Scanned column "+name+" is of type "+n);
 				}
 				if (n == Types.BIGINT) {
 					columnTypes.put(name, Long.class);

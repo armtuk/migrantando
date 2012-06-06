@@ -32,7 +32,7 @@ public class PostgresqlTableBuilder extends TableBuilder {
         StringBuffer sql=new StringBuffer();
 
         sql.append("create table ");
-        sql.append(convertToUnderscoreFormat(tr.getTableName()));
+        sql.append("\""+convertToUnderscoreFormat(tr.getTableName())+"\"");
         sql.append(" (\n");
 
         ArrayList<String> sortedKeys = new ArrayList<String>();
@@ -46,7 +46,7 @@ public class PostgresqlTableBuilder extends TableBuilder {
 
         for (String a: sortedKeys) {
             Guidance g=guidance.get(a);
-            sql.append(a);
+            sql.append(convertToUnderscoreFormat(a));
             sql.append(" ");
             sql.append(getDatabaseTypeForJavaClass(types.get(a), g));
             if (g!=null) {
@@ -72,10 +72,10 @@ public class PostgresqlTableBuilder extends TableBuilder {
                 sql.append("constraint ");
                 sql.append(convertToUnderscoreFormat(tr.getTableName()));
                 sql.append("_");
-                sql.append(a);
+                sql.append(convertToUnderscoreFormat(a));
                 sql.append("_fk");
                 sql.append(" foreign key (");
-                sql.append(a);
+                sql.append(convertToUnderscoreFormat(a));
                 sql.append(") references ");
                 sql.append(fk.getTableName());
                 sql.append(" on delete ");

@@ -29,8 +29,11 @@ public class CreateDDL {
 
             TableRepresentation tr = new TableRepresentation(db, tableName);
 
-            sb.append(tb.buildTable(tr));
-            sb.append("\n");
+            if (tr.getPrimaryKeys().length>0) {
+                System.out.println("Building for table " + tr.getTableName());
+                sb.append(tb.buildTable(tr));
+                sb.append("\n");
+            }
         }
 
         return sb.toString();

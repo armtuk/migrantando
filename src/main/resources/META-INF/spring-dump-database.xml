@@ -11,6 +11,12 @@
 
     <bean id="propertyConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
     </bean>
+
+    <bean id="configuration" class="com.plexq.migration.app.Configuration">
+        <property name="dumpPath" value="data/scala"/>
+        <property name="packageName" value="model"/>
+    </bean>
+
     <!--
     <bean id="dataSource" class="net.sourceforge.jtds.jdbcx.JtdsDataSource">
         <property name="databaseName" value="ebs_DATADUMP"/>

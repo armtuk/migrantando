@@ -23,15 +23,19 @@ public class GenerateScalaClasses {
 
     private static ApplicationContext context;
 
-    private String dumpPath="data/scala";
+    private static String dumpPath="data/scala";
+
+    private static Configuration config;
 
     public static void main(String[] args) throws Exception {
         String x = System.getProperty("dumpPath");
 
         context = new FileSystemXmlApplicationContext("src/main/resources/META-INF/spring-dump-database.xml");
+        config = context.getBean("configuration", Configuration.class);
+        dumpPath = config.getDumpPath();
         GenerateScalaClasses dtc = new GenerateScalaClasses();
         if (x!=null && !x.equals("")) {
-            dtc.setDumpPath(x);
+            dumpPath=x;
         }
 
         DataSource ds = (DataSource)context.getBean("dataSource");
@@ -53,7 +57,7 @@ public class GenerateScalaClasses {
         Connection connection = ((DataSource)context.getBean("dataSource")).getConnection();
 
         ScalaClassTableBuilder jctb = new ScalaClassTableBuilder();
-        jctb.setPackageName("com.plexq.migrations.model");
+        jctb.setPackageName(config.getPackageName());
         jctb.setDumpPath(dumpPath);
 
         CreateDDL cddl = new CreateDDL();
@@ -63,11 +67,7 @@ public class GenerateScalaClasses {
 
     }
 
-    public String getDumpPath() {
+    public static String getDumpPath() {
         return dumpPath;
-    }
-
-    public void setDumpPath(String dumpPath) {
-        this.dumpPath = dumpPath;
     }
 }

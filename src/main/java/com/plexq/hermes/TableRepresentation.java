@@ -94,6 +94,11 @@ public class TableRepresentation implements Map<String, Object> {
 	 */
 	protected String optimisticLock="version";
 
+    /**
+     * Type name generator
+     */
+    private TypeNameFactory typeNameFactory;
+
     private List<IndexRepresentation> indices = new ArrayList<IndexRepresentation>();
 
     private TableMetadata metaData;
@@ -1066,6 +1071,13 @@ public class TableRepresentation implements Map<String, Object> {
 		return pkey;
 	}
 
+    public String getTypeName(String column) throws TableBuildException {
+        if (typeNameFactory == null) {
+            throw new TableBuildException("typeNameFactory is null, and you can't ask for a type name from a table representation without setting the type name factory");
+        }
+        return typeNameFactory.getTypeName(tableTypes.get(column));
+    }
+
 	/**
 	 * Remove an entry from the data map
 	 * This is sometimes useful if you want to stash temporary information in a TR object
@@ -1183,5 +1195,13 @@ public class TableRepresentation implements Map<String, Object> {
 
     public void setMetaData(TableMetadata metaData) {
         this.metaData = metaData;
+    }
+
+    public TypeNameFactory getTypeNameFactory() {
+        return typeNameFactory;
+    }
+
+    public void setTypeNameFactory(TypeNameFactory typeNameFactory) {
+        this.typeNameFactory = typeNameFactory;
     }
 }

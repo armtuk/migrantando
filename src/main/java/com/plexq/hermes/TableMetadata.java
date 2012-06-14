@@ -16,7 +16,9 @@ public class TableMetadata {
 	private ArrayList<String> primaryKeys;
 	private TreeMap<String, Class> columnTypes;
     private TreeMap<String, Guidance> tableGuidance = new TreeMap<String, Guidance>();
+    private ArrayList<String> columnsInOrder = new ArrayList<String>();
 	private boolean debug=true;
+    private boolean longOrIntId = false;
 
 	public TableMetadata(Connection db, String tableName) throws SQLException {
 		if (db != null) {
@@ -37,6 +39,9 @@ public class TableMetadata {
 			while (rs.next()) {
 				String name = rs.getString(4);
 				int n = rs.getInt(5);
+
+                columnsInOrder.add(name);
+
 				if (debug) {
 					//log.info("Scanned column "+name+" is of type "+n);
 				}
@@ -124,6 +129,11 @@ public class TableMetadata {
                 tableGuidance.put(name,g);
 
 			}
+
+
+            if (primaryKeys.size()==1 && (columnTypes.get(primaryKeys.get(0)).equals(Long.class) || columnTypes.get(primaryKeys.get(0)).equals(Integer.class))) {
+                longOrIntId = true;
+            }
 		}
 	}
 
@@ -176,7 +186,11 @@ public class TableMetadata {
         return tableGuidance;
     }
 
-    public void setTableGuidance(TreeMap<String, Guidance> tableGuidance) {
-        this.tableGuidance = tableGuidance;
+    public ArrayList<String> getColumnsInOrder() {
+        return columnsInOrder;
+    }
+
+    public boolean hasLongOrIntId() {
+        return longOrIntId;
     }
 }

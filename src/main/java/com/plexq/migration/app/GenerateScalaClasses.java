@@ -27,13 +27,15 @@ public class GenerateScalaClasses {
 
     private static Configuration config;
 
+    private String[] names;
+
     public static void main(String[] args) throws Exception {
         String x = System.getProperty("dumpPath");
 
         context = new FileSystemXmlApplicationContext("src/main/resources/META-INF/spring-dump-database.xml");
         config = context.getBean("configuration", Configuration.class);
         dumpPath = config.getDumpPath();
-        GenerateScalaClasses dtc = new GenerateScalaClasses();
+        GenerateScalaClasses dtc = new GenerateScalaClasses(args);
         if (x!=null && !x.equals("")) {
             dumpPath=x;
         }
@@ -45,6 +47,10 @@ public class GenerateScalaClasses {
         }
 
         dtc.run();
+    }
+
+    public GenerateScalaClasses(String[] names) {
+        this.names = names;
     }
 
     public void run() throws Exception {
@@ -60,7 +66,7 @@ public class GenerateScalaClasses {
         jctb.setPackageName(config.getPackageName());
         jctb.setDumpPath(dumpPath);
 
-        CreateDDL cddl = new CreateDDL();
+        CreateDDL cddl = new CreateDDL(names);
 
         // pretty sure at this point, htis is just a side-effect.
         String ddl = cddl.create(connection,"public", jctb);

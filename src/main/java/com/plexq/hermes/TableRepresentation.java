@@ -1204,4 +1204,8 @@ public class TableRepresentation implements Map<String, Object> {
     public void setTypeNameFactory(TypeNameFactory typeNameFactory) {
         this.typeNameFactory = typeNameFactory;
     }
+
+    public boolean hasLongOrIntId() {
+        return metaData.hasLongOrIntId();
+    }
 }

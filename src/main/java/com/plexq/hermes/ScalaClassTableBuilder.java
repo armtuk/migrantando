@@ -27,23 +27,8 @@ public class ScalaClassTableBuilder extends TableBuilder {
 
     private String dumpPath;
 
-    private List<String> entityFields;
-
     public ScalaClassTableBuilder() {
-        entityFields = new ArrayList<String>();
-        entityFields.addAll(Arrays.asList(entityFieldsS));
     }
-
-    private static String[] entityFieldsS = {
-            "id",
-            "created_timestamp",
-            "updated_timestamp",
-            "version",
-            "Version",
-            "updated_by_id",
-            "created_by_id"
-    };
-
     @Override
     public String buildTable(TableRepresentation tr) throws SQLException, TableBuildException {
         File f = new File(dumpPath + "/" + convertToCamelCaseFormat(tr.getTableName(),true) + ".scala");
@@ -82,154 +67,185 @@ public class ScalaClassTableBuilder extends TableBuilder {
         }
     }
 
-        public String generateCaseClass(TableRepresentation tr) throws TableBuildException {
-            StringBuilder sql = new StringBuilder();
-            sql.append("case class ");
-            sql.append(convertToCamelCaseFormat(tr.getTableName(), true));
-            sql.append("(");
+    public String generateCaseClass(TableRepresentation tr) throws TableBuildException {
+        StringBuilder sql = new StringBuilder();
+        sql.append("case class ");
+        sql.append(convertToCamelCaseFormat(tr.getTableName(), true));
+        sql.append("(");
 
-            for (String a: tr.getTableTypes().keySet()) {
-                sql.append(convertToCamelCaseFormat(a, false));
-                sql.append(": ");
-                sql.append(tr.getTypeName(a));
-                sql.append(", ");
-            }
-            sql = trimRight(sql, 2);
-            sql.append(")\n\n");
-            return sql.toString();
+        Map<String, Guidance> guidance = tr.getMetaData().getTableGuidance();
+
+        TreeMap<Integer, String> fieldOrderedColumnNames = new TreeMap<Integer, String>();
+        for (Map.Entry<String, Guidance> e: guidance.entrySet()) {
+            fieldOrderedColumnNames.put(e.getValue().getFieldPosition(), e.getKey());
         }
 
+        boolean useIdDriven = tr.hasLongOrIntId();
+        if  (useIdDriven) {
+            sql.append("override val id");
+            sql.append(": Option[Long], ");
 
-        public String generateObject(TableRepresentation tr) throws TableBuildException {
-            TreeMap<String, Class> types = tr.getTableTypes();
-
-            StringBuilder sql = new StringBuilder();
-            sql.append("object ");
-            sql.append(convertToCamelCaseFormat(tr.getTableName(), true));
-            sql.append(" {\n");
-
-            sql.append("\tval simple = {\n");
-
-            for (String a: types.keySet()) {
-                sql.append("\t\tget[");
-                sql.append(tr.getTypeName(a));
-                sql.append("](\"");
-                sql.append(a);
-                sql.append("\") ~\n");
-            }
-
-            sql = trimRight(sql, 2);
-            sql.append(" map {\n\t\t\tcase ");
-
-            for (String a: types.keySet()) {
-                sql.append(convertToCamelCaseFormat(a, false));
-                sql.append(" ~ ");
-            }
-
-            sql = trimRight(sql, 2);
-
-            sql.append("=> {\n\t\t\t\t");
-            sql.append(convertToCamelCaseFormat(tr.getTableName(), true));
-            sql.append("(");
-
-            for (String a: types.keySet()) {
-                sql.append(convertToCamelCaseFormat(a, false));
-                sql.append(", ");
-            }
-
-
-            sql = trimRight(sql, 2);
-
-            sql.append(")\n");
-
-            // End Case
-            sql.append("\t\t\t}\n");
-            // End Map
-            sql.append("\t\t}\n");
-            // End val
-            sql.append("\t}\n\n");
-
-            sql.append(buildFindByIdFunction(tr));
-            sql.append(buildPersistFunction(tr));
-            sql.append(buildUpdateFunction(tr));
-
-            sql.append("}");
-
-            return sql.toString();
+            fieldOrderedColumnNames.remove(guidance.get(tr.getPrimaryKeys()[0]).getFieldPosition());
         }
 
-        public String buildPersistFunction(TableRepresentation tr) throws TableBuildException {
-            TreeMap<String, Class> types = tr.getTableTypes();
+        for (String a: fieldOrderedColumnNames.values()) {
+            sql.append(convertToCamelCaseFormat(a, false));
+            sql.append(": ");
+            sql.append(tr.getTypeName(a));
+            sql.append(", ");
+        }
+        sql = trimRight(sql, 2);
+        sql.append(")");
+        if (useIdDriven) {
+            sql.append(" extends IdDriven");
+        }
+        sql.append("\n\n");
+        return sql.toString();
+    }
 
-            StringBuilder sql = new StringBuilder();
-            // Persist the Class to the database
-            sql.append("\tdef persist(obj: ");
-            sql.append(convertToCamelCaseFormat(tr.getTableName(),true));
-            sql.append(") = {\n");
-            sql.append("\t\tDB.withTransaction { implicit connection =>\n");
 
-            if (tr.getPrimaryKeys().length == 1 && Arrays.asList(new String[]{"Long","Integer"}).contains(tr.getTypeName(tr.getPrimaryKeys()[0]))) {
-                sql.append("\t\t\tvar c = obj.copy(");
-                sql.append(tr.getPrimaryKeys()[0]);
-                if (tr.getTypeName(tr.getPrimaryKeys()[0]).equals("Int")) {
-                    sql.append("=DBHelper.nextId.toInt)\n\n");
-                }
-                else {
-                    sql.append("=DBHelper.nextId)\n\n");
-                }
+    public String generateObject(TableRepresentation tr) throws TableBuildException {
+        TreeMap<String, Class> types = tr.getTableTypes();
+
+        StringBuilder sql = new StringBuilder();
+        sql.append("object ");
+        sql.append(convertToCamelCaseFormat(tr.getTableName(), true));
+        sql.append(" {\n");
+
+        sql.append("\tval simple = {\n");
+
+        for (String a: tr.getMetaData().getColumnsInOrder()) {
+
+            sql.append("\t\tget[");
+            if (tr.hasLongOrIntId() && a.equals(tr.getPrimaryKeys()[0])) {
+                sql.append("Option[Long]");
             }
             else {
-                sql.append("\t\t\tvar c = obj\n\n");
+                sql.append(tr.getTypeName(a));
             }
-
-            sql.append("\t\t\tSQL(\"insert into ");
-            sql.append(tr.getTableName());
-            sql.append(" values (");
-
-            for (String a: types.keySet()) {
-                sql.append(a);
-                sql.append(", ");
-            }
-
-            sql = trimRight(sql, 2);
-
-            sql.append(")\" + \n\t\t\t\t\" values (");
-
-            for (String a: types.keySet()) {
-                sql.append("{");
-                sql.append(convertToCamelCaseFormat(a,false));
-                sql.append("}, ");
-            }
-            sql = trimRight(sql, 2);
-
-            sql.append(")\")\n");
-            sql.append("\t\t\t.on(");
-
-
-            for (String a: types.keySet()) {
-                sql.append("'");
-                sql.append(convertToCamelCaseFormat(a,false));
-                sql.append(" -> c.");
-                sql.append(convertToCamelCaseFormat(a, false));
-                sql.append(", ");
-            }
-
-            sql = trimRight(sql, 2);
-
-            sql.append(").executeInsert()\n");
-            // End DB.withTransaction
-            sql.append("\t\t}\n");
-            // End def
-            sql.append("\t}\n\n");
-
-            return sql.toString();
+            sql.append("](\"");
+            sql.append(a);
+            sql.append("\") ~\n");
         }
+
+        sql = trimRight(sql, 2);
+        sql.append(" map {\n\t\t\tcase ");
+
+        for (String a: tr.getMetaData().getColumnsInOrder()) {
+            sql.append(convertToCamelCaseFormat(a, false));
+            sql.append(" ~ ");
+        }
+
+        sql = trimRight(sql, 2);
+
+        sql.append("=> {\n\t\t\t\t");
+        sql.append(convertToCamelCaseFormat(tr.getTableName(), true));
+        sql.append("(");
+
+        for (String a: tr.getMetaData().getColumnsInOrder()) {
+            sql.append(convertToCamelCaseFormat(a, false));
+            sql.append(", ");
+        }
+
+
+        sql = trimRight(sql, 2);
+
+        sql.append(")\n");
+
+        // End Case
+        sql.append("\t\t\t}\n");
+        // End Map
+        sql.append("\t\t}\n");
+        // End val
+        sql.append("\t}\n\n");
+
+        sql.append(buildFindByIdFunction(tr));
+        sql.append(buildPersistFunction(tr));
+        sql.append(buildUpdateFunction(tr));
+        sql.append(buildSaveOrUpdateFunction(tr));
+
+        sql.append("}");
+
+        return sql.toString();
+    }
+
+    public String buildPersistFunction(TableRepresentation tr) throws TableBuildException {
+        TreeMap<String, Class> types = tr.getTableTypes();
+
+        StringBuilder sql = new StringBuilder();
+        // Persist the Class to the database
+        sql.append("\tdef persist(obj: ");
+        sql.append(convertToCamelCaseFormat(tr.getTableName(),true));
+        sql.append(") = {\n");
+        sql.append("\t\tDB.withTransaction { implicit connection =>\n");
+
+        if (tr.hasLongOrIntId()) {
+            sql.append("\t\t\tvar c = obj.copy(");
+
+            sql.append("id = Some(DBHelper.nextId)).asInstanceOf[");
+                sql.append(convertToCamelCaseFormat(tr.getTableName(),true));
+                sql.append("]\n\n");
+        }
+        else {
+            sql.append("\t\t\tvar c = obj\n\n");
+        }
+
+        sql.append("\t\t\tSQL(\"insert into ");
+        sql.append(tr.getTableName());
+        sql.append(" (");
+
+        for (String a: tr.getMetaData().getColumnsInOrder()) {
+            sql.append(a);
+            sql.append(", ");
+        }
+
+        sql = trimRight(sql, 2);
+
+        sql.append(") \" + \n\t\t\t\t\"values (");
+
+        for (String x: tr.getMetaData().getColumnsInOrder()) {
+            String a = tr.hasLongOrIntId()&&tr.getPrimaryKeys()[0].equals(x) ? "id" : x;
+
+            sql.append("{");
+            sql.append(convertToCamelCaseFormat(a,false));
+            sql.append("}, ");
+        }
+        sql = trimRight(sql, 2);
+
+        sql.append(")\")\n");
+        sql.append("\t\t\t.on(");
+
+
+        for (String x: tr.getMetaData().getColumnsInOrder()) {
+            String a = tr.hasLongOrIntId()&&tr.getPrimaryKeys()[0].equals(x) ? "id" : x;
+            sql.append("'");
+            sql.append(convertToCamelCaseFormat(a,false));
+            sql.append(" -> c.");
+            sql.append(convertToCamelCaseFormat(a, false));
+            sql.append(", ");
+        }
+
+        sql = trimRight(sql, 2);
+
+        sql.append(").executeInsert()\n");
+        // End DB.withTransaction
+        sql.append("\t\t}\n\tobj\n");
+        // End def
+        sql.append("\t}\n\n");
+
+        return sql.toString();
+    }
 
     public String buildFindByIdFunction(TableRepresentation tr) throws TableBuildException {
         StringBuilder sql = new StringBuilder();
 
-        sql.append("\tdef findById(id: ");
-        sql.append(tr.getTypeName(tr.getPrimaryKeys()[0]));
+        sql.append("\tdef read(id: ");
+        if (tr.hasLongOrIntId()) {
+            sql.append("Long");
+        }
+        else {
+            sql.append(tr.getTypeName(tr.getPrimaryKeys()[0]));
+        }
         sql.append(") = {\n\t\tDB.withConnection { implicit connection =>\n");
         sql.append("\t\t\tSQL(\"select * from ");
         sql.append(tr.getTableName());
@@ -250,55 +266,68 @@ public class ScalaClassTableBuilder extends TableBuilder {
         TreeMap<String, Class> types = tr.getTableTypes();
         StringBuilder sql = new StringBuilder();
 
-            sql.append("\tdef update(c: ");
-            sql.append(convertToCamelCaseFormat(tr.getTableName(), true));
-            sql.append(") = {\n");
-            sql.append("\t\tDB.withTransaction { implicit connection =>\n");
-            sql.append("\t\t\tSQL(\"update ");
-            sql.append(tr.getTableName());
-            sql.append(" set ");
+        sql.append("\tdef update(obj: ");
+        sql.append(convertToCamelCaseFormat(tr.getTableName(), true));
+        sql.append(") = {\n");
+        sql.append("\t\tDB.withTransaction { implicit connection =>\n");
+        sql.append("\t\t\tSQL(\"update ");
+        sql.append(tr.getTableName());
+        sql.append(" set ");
 
-            for (String a : types.keySet()) {
-                if (!Arrays.asList(tr.getPrimaryKeys()).contains(a)) {
-                    sql.append(a);
-                    sql.append(" = {");
-                    sql.append(convertToCamelCaseFormat(a, false));
-                    sql.append("}, ");
-                }
-            }
-
-            sql = trimRight(sql, 2);
-
-            sql.append(" where ");
-
-            for (String a: tr.getPrimaryKeys()) {
-                sql.append(a);
+        for (String x : tr.getMetaData().getColumnsInOrder()) {
+            String a = tr.hasLongOrIntId()&&tr.getPrimaryKeys()[0].equals(x) ? "id" : x;
+            if (!Arrays.asList(tr.getPrimaryKeys()).contains(a)) {
+                sql.append(x);
                 sql.append(" = {");
                 sql.append(convertToCamelCaseFormat(a, false));
-                sql.append("} and ");
+                sql.append("}, ");
             }
+        }
 
-            sql = trimRight(sql, 5);
+        sql = trimRight(sql, 2);
 
-            sql.append("\")\n");
-            sql.append("\t\t\t.on(");
+        sql.append(" where ");
 
-            for (String a: types.keySet()) {
-                sql.append("'");
-                sql.append(convertToCamelCaseFormat(a, false));
-                sql.append(" -> c.");
-                sql.append(convertToCamelCaseFormat(a, false));
-                sql.append(", ");
-            }
+        for (String x: tr.getPrimaryKeys()) {
+            String a = tr.hasLongOrIntId()&&tr.getPrimaryKeys()[0].equals(x) ? "id" : x;
+            sql.append(x);
+            sql.append(" = {");
+            sql.append(convertToCamelCaseFormat(a, false));
+            sql.append("} and ");
+        }
 
-            sql = trimRight(sql, 2);
-            sql.append(").executeUpdate()\n");
-            //End DB with Transaction
-            sql.append("\t\t}\n");
-            // End def
-            sql.append("\t}\n");
+        sql = trimRight(sql, 5);
+
+        sql.append("\")\n");
+        sql.append("\t\t\t.on(");
+
+        for (String x: tr.getMetaData().getColumnsInOrder()) {
+            String a = tr.hasLongOrIntId()&&tr.getPrimaryKeys()[0].equals(x) ? "id" : x;
+            sql.append("'");
+            sql.append(convertToCamelCaseFormat(a, false));
+            sql.append(" -> obj.");
+            sql.append(convertToCamelCaseFormat(a, false));
+            sql.append(", ");
+        }
+
+        sql = trimRight(sql, 2);
+        sql.append(").executeUpdate()\n");
+        //End DB with Transaction
+        sql.append("\t\t}\n\tobj\n");
+        // End def
+        sql.append("\t}\n");
 
         return sql.toString();
+    }
+
+    public String buildSaveOrUpdateFunction(TableRepresentation tr) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("\n\tdef saveOrUpdate = DBHelper.saveOrUpdate[models.");
+        sb.append(convertToCamelCaseFormat(tr.getTableName(),true));
+        sb.append("](_)(read, persist, update)\n");
+
+        return sb.toString();
     }
 
     public void setPackageName(String packageName) {
@@ -311,14 +340,6 @@ public class ScalaClassTableBuilder extends TableBuilder {
 
     public void setDumpPath(String dumpPath) {
         this.dumpPath = dumpPath;
-    }
-
-    public List<String> getEntityFields() {
-        return entityFields;
-    }
-
-    public void setEntityFields(List<String> entityFields) {
-        this.entityFields = entityFields;
     }
 
     public StringBuilder trimRight(StringBuilder s, Integer count) {

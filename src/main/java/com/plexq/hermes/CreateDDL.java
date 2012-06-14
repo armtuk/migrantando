@@ -12,8 +12,13 @@ import java.sql.SQLException;
  * Time: 3:03 PM
  */
 public class CreateDDL {
-    public CreateDDL() {
+    private String[] names;
 
+    public CreateDDL() {
+    }
+
+    public CreateDDL(String[] names) {
+        this.names = names;
     }
 
     public String create(Connection db, String schema, TableBuilder tb) throws SQLException,TableBuildException {
@@ -22,8 +27,33 @@ public class CreateDDL {
         ResultSet rs;
 
         DatabaseMetaData dmd = db.getMetaData();
-        rs = dmd.getTables(null,schema,null,null);
+        if (names==null) {
+            rs = dmd.getTables(null,schema,null,null);
+            processResultSet(db, tb, rs);
+        }
+        else {
+            for (String s: names) {
+                String[] pieces = s.split("\\.");
+                String lSchema = schema;
+                String tableName = null;
+                if (pieces.length==1) {
+                    tableName = pieces[0];
+                }
+                if (pieces.length==2) {
+                    lSchema = pieces[0];
+                    tableName = pieces[1];
+                }
 
+                processResultSet(db, tb, dmd.getTables(null, lSchema, tableName, null));
+            }
+        }
+
+
+        return sb.toString();
+    }
+
+    public String processResultSet(Connection db, TableBuilder tb, ResultSet rs) throws SQLException, TableBuildException {
+        StringBuilder sb = new StringBuilder();
         while (rs.next()) {
             String tableName = rs.getString(3);
 

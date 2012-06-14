@@ -11,11 +11,11 @@ DATAFILES=`ls *.dump`
 
 for a in $TABLESLIST
 do
-	FILENAME=`echo "dbo.$a.dump" | sed 's/_//g'`
+	FILENAME=`echo "dbo.$a.dump"`; #| sed 's/_//g'`
 	echo "Loading $a from $FILENAME"
 	if [ -e "$FILENAME" ]; then
 		echo "Found $FILENAME"
-		psql -hlocalhost eve -c "copy $a from '$DATAHOME/$FILENAME'"
+		psql -hlocalhost dt -c "copy $a from '$DATAHOME/$FILENAME'"
 	else
 		echo "Warning: $FILENAME not found"
 	fi

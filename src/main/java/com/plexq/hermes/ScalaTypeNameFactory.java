@@ -1,6 +1,7 @@
 package com.plexq.hermes;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.Date;
 
 /**
@@ -14,7 +15,10 @@ public class ScalaTypeNameFactory extends TypeNameFactory {
         if (c.equals(Integer.class)) {
             return "Int";
         }
-        else if (c.equals(Date.class)) {
+        else if (c.equals(Date.class) || c.equals(java.sql.Date.class)) {
+            return "java.util.Date";
+        }
+        else if (c.equals(Timestamp.class)) {
             return "java.util.Date";
         }
         else if (c.equals(BigDecimal.class)) {

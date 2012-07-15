@@ -19,20 +19,29 @@
 
     <!--
     <bean id="dataSource" class="net.sourceforge.jtds.jdbcx.JtdsDataSource">
-        <property name="databaseName" value="ebs_DATADUMP"/>
-        <property name="serverName" value="184.106.99.80"/>
+        <property name="databaseName" value="SportsPower"/>
+        <property name="serverName" value="173.203.67.146"/>
         <property name="user" value="aturner"/>
-        <property name="password" value="mypassword"/>
+        <property name="password" value="all3mail"/>
         <property name="portNumber" value="1433"/>
-    </bean>
-    -->
+    </bean>-->
 
+    <!--
     <bean id="dataSource" class="org.postgresql.ds.PGSimpleDataSource">
         <property name="databaseName" value="eve"/>
         <property name="serverName" value="localhost"/>
         <property name="user" value="eve"/>
         <property name="password" value="eve123"/>
         <property name="portNumber" value="5432"/>
+    </bean>
+    -->
+
+    <bean id="dataSource"
+          class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <property name="driverClassName" value="com.mysql.jdbc.Driver" />
+        <property name="url" value="jdbc:mysql:/tzdb1/taaz01" />
+        <property name="username" value="taaz01" />
+        <property name="password" value="bleezEk1" />
     </bean>
 
 </beans>

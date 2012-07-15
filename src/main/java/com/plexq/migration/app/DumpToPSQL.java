@@ -61,7 +61,7 @@ public class DumpToPSQL {
 
         try {
             DatabaseMetaData dmd = connection.getMetaData();
-            ResultSet rs = dmd.getTables(null, "dbo", null, null);
+            ResultSet rs = dmd.getTables(null, "taaz01", null, null);
             String schemaName;
             String tableName;
             while (rs.next()) {

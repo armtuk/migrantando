@@ -22,6 +22,7 @@ import java.sql.*;
 import java.util.*;
 import java.text.*;
 
+import com.plexq.hermes.util.Util;
 import org.apache.log4j.*;
 
 import com.plexq.hermes.tool.*;
@@ -908,6 +909,10 @@ public class TableRepresentation implements Map<String, Object> {
 	public String getTableName() {
 		return tableName;
 	}
+
+    public String getTableNameCamel() {
+        return Util.convertToCamelCaseFormat(tableName, true);
+    }
 
 	/**
 	 * Set the table name to something new - used for object re-use or for moving data from one table to another

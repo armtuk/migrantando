@@ -26,16 +26,17 @@
         <property name="portNumber" value="1433"/>
     </bean>-->
 
-    <!--
+
     <bean id="dataSource" class="org.postgresql.ds.PGSimpleDataSource">
-        <property name="databaseName" value="eve"/>
+        <property name="databaseName" value="eve-prod"/>
         <property name="serverName" value="localhost"/>
         <property name="user" value="eve"/>
         <property name="password" value="eve123"/>
         <property name="portNumber" value="5432"/>
     </bean>
-    -->
 
+
+    <!--
     <bean id="dataSource"
           class="org.springframework.jdbc.datasource.DriverManagerDataSource">
         <property name="driverClassName" value="com.mysql.jdbc.Driver" />
@@ -43,5 +44,6 @@
         <property name="username" value="taaz01" />
         <property name="password" value="bleezEk1" />
     </bean>
+    -->
 
 </beans>

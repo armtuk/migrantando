@@ -69,7 +69,8 @@ public class GenerateScalaClasses {
         CreateDDL cddl = new CreateDDL(names);
 
         // pretty sure at this point, htis is just a side-effect.
-        String ddl = cddl.create(connection,"public", jctb);
+        System.out.println("Scanning...");
+        String ddl = cddl.create(connection,"jeves", jctb);
 
     }
 

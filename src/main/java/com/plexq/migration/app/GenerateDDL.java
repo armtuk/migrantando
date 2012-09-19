@@ -11,12 +11,6 @@ import javax.sql.DataSource;
 import java.io.*;
 import java.sql.*;
 
-/**
- * Created by IntelliJ IDEA.
- * User: plexq
- * Date: Aug 15, 2010
- * Time: 12:47:34 PM
- */
 public class GenerateDDL {
     private static Logger log = Logger.getLogger(GenerateDDL.class);
 

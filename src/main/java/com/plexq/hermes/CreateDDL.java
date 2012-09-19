@@ -1,9 +1,6 @@
 package com.plexq.hermes;
 
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -27,11 +24,13 @@ public class CreateDDL {
         ResultSet rs;
 
         DatabaseMetaData dmd = db.getMetaData();
-        if (names==null) {
+        if (names==null || names.length==0) {
+            System.out.println("Getting tables...");
             rs = dmd.getTables(null,schema,null,null);
             processResultSet(db, tb, rs);
         }
         else {
+            System.out.println("Select tables only...");
             for (String s: names) {
                 String[] pieces = s.split("\\.");
                 String lSchema = schema;
@@ -56,6 +55,7 @@ public class CreateDDL {
         StringBuilder sb = new StringBuilder();
         while (rs.next()) {
             String tableName = rs.getString(3);
+            System.out.println("Table : " + tableName);
 
             TableRepresentation tr = new TableRepresentation(db, tableName);
 

@@ -120,7 +120,11 @@ public class ScalaClassTableBuilder extends TableBuilder {
         StringBuilder sql = new StringBuilder();
         sql.append("object ");
         sql.append(tr.getTableNameCamel());
-        sql.append(" extends IdDriveCompanion[").append(tr.getTableNameCamel()).append("]{\n");
+        if (isIdDriven(tr)) {
+            sql.append(" extends IdDriveCompanion[").append(tr.getTableNameCamel()).append("]");
+        }
+        sql.append("{\n");
+
         sql.append("\tval tableName =\"").append(tr.getTableName()).append("\"\n");
         sql.append(generateSimpleParser(tr, "simple", new AliasNameBuilder(tr){
             public String getAlias(String column) throws TableBuildException {
@@ -263,10 +267,14 @@ public class ScalaClassTableBuilder extends TableBuilder {
         return sql.toString();
     }
 
+    public Boolean isIdDriven(TableRepresentation tr) throws TableBuildException {
+        return (tr.getPrimaryKeys().length==1 && tr.getTypeName(tr.getPrimaryKeys()[0]).equals("Long"));
+    }
+
     public String buildFindByIdFunction(TableRepresentation tr) throws TableBuildException {
         StringBuilder sql = new StringBuilder();
 
-        sql.append("\tdef read(id: ");
+        sql.append("\t").append(isIdDriven(tr) ? "override " : "").append("def read(id: ");
         if (tr.hasLongOrIntId()) {
             sql.append("Long");
         }
@@ -346,13 +354,18 @@ public class ScalaClassTableBuilder extends TableBuilder {
         return sql.toString();
     }
 
-    public String buildSaveOrUpdateFunction(TableRepresentation tr) {
-        StringBuilder sb = new StringBuilder();
+    public String buildSaveOrUpdateFunction(TableRepresentation tr) throws TableBuildException {
+        if (isIdDriven(tr)) {
+            StringBuilder sb = new StringBuilder();
 
-        sb.append("\n\toverride def saveOrUpdate(t: ").append(tr.getTableNameCamel()).append(") = super.saveOrUpdate");
-        sb.append("(t: ").append(tr.getTableNameCamel()).append(")\n");
+            sb.append("\n\toverride def saveOrUpdate(t: ").append(tr.getTableNameCamel()).append(") = super.saveOrUpdate");
+            sb.append("(t: ").append(tr.getTableNameCamel()).append(")\n");
 
-        return sb.toString();
+            return sb.toString();
+        }
+        else {
+            return "";
+        }
     }
 
     public void setPackageName(String packageName) {

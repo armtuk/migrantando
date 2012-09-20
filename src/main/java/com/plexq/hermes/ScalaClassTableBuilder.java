@@ -121,39 +121,65 @@ public class ScalaClassTableBuilder extends TableBuilder {
         sql.append("object ");
         sql.append(tr.getTableNameCamel());
         sql.append(" extends IdDriveCompanion[").append(tr.getTableNameCamel()).append("]{\n");
+        sql.append("\tval tableName =\"").append(tr.getTableName()).append("\"\n");
+        sql.append(generateSimpleParser(tr, "simple", new AliasNameBuilder(tr){
+            public String getAlias(String column) throws TableBuildException {
+                return column;
+            }
+        }));
+        sql.append(generateSimpleParser(tr, "result", new AliasNameBuilder(tr) {
+            @Override
+            public String getAlias(String column) throws TableBuildException {
+                return tr.getTableName()+"."+column;
+            }
+        }));
 
-        sql.append("\tval simple = {\n");
 
-        for (String a: tr.getMetaData().getColumnsInOrder()) {
+        sql.append(buildFindByIdFunction(tr));
+        sql.append(buildPersistFunction(tr));
+        sql.append(buildUpdateFunction(tr));
+        sql.append(buildSaveOrUpdateFunction(tr));
+
+        sql.append("}");
+
+        return sql.toString();
+    }
+
+
+    public String generateSimpleParser(TableRepresentation tr, String parserName, AliasNameBuilder anb) throws TableBuildException {
+        StringBuilder sql = new StringBuilder();
+        sql.append("\tval ").append(parserName).append(" = {\n");
+
+        for (String column : tr.getMetaData().getColumnsInOrder()) {
 
             sql.append("\t\tget[");
-            if (tr.hasLongOrIntId() && a.equals(tr.getPrimaryKeys()[0])) {
+            if (tr.hasLongOrIntId() && column.equals(tr.getPrimaryKeys()[0])) {
                 sql.append("Option[Long]");
             }
             else {
-                sql.append(tr.getTypeName(a));
+                sql.append(tr.getTypeName(column));
             }
             sql.append("](\"");
-            sql.append(a);
+            sql.append(anb.getAlias(column));
             sql.append("\") ~\n");
         }
 
         sql = trimRight(sql, 2);
         sql.append(" map {\n\t\t\tcase ");
 
-        for (String a: tr.getMetaData().getColumnsInOrder()) {
-            sql.append(Util.convertToCamelCaseFormat(a, false));
+        for (String column : tr.getMetaData().getColumnsInOrder()) {
+            sql.append(Util.convertToCamelCaseFormat(column, false));
             sql.append(" ~ ");
         }
 
         sql = trimRight(sql, 2);
 
         sql.append("=> {\n\t\t\t\t");
-        sql.append(Util.convertToCamelCaseFormat(tr.getTableName(), true));
+        sql.append(tr.getTableNameCamel());
         sql.append("(");
 
-        for (String a: tr.getMetaData().getColumnsInOrder()) {
-            sql.append(Util.convertToCamelCaseFormat(a, false));
+        for (String column : tr.getMetaData().getColumnsInOrder()) {
+            sql.append(Util.convertToCamelCaseFormat(column, false));
             sql.append(", ");
         }
 
@@ -168,13 +194,6 @@ public class ScalaClassTableBuilder extends TableBuilder {
         sql.append("\t\t}\n");
         // End val
         sql.append("\t}\n\n");
-
-        sql.append(buildFindByIdFunction(tr));
-        sql.append(buildPersistFunction(tr));
-        sql.append(buildUpdateFunction(tr));
-        sql.append(buildSaveOrUpdateFunction(tr));
-
-        sql.append("}");
 
         return sql.toString();
     }
@@ -191,8 +210,8 @@ public class ScalaClassTableBuilder extends TableBuilder {
             sql.append("\t\t\tvar c = obj.copy(");
 
             sql.append("id = Some(DBHelper.nextId)).asInstanceOf[");
-                sql.append(Util.convertToCamelCaseFormat(tr.getTableName(), true));
-                sql.append("]\n\n");
+            sql.append(Util.convertToCamelCaseFormat(tr.getTableName(), true));
+            sql.append("]\n\n");
         }
         else {
             sql.append("\t\t\tvar c = obj\n\n");
@@ -346,5 +365,14 @@ public class ScalaClassTableBuilder extends TableBuilder {
 
     public StringBuilder trimRight(StringBuilder s, Integer count) {
         return new StringBuilder(s.substring(0,s.length()-count));
+    }
+
+    public abstract class AliasNameBuilder {
+        TableRepresentation tr;
+        public AliasNameBuilder(TableRepresentation tr) {
+            this.tr = tr;
+        }
+
+        public abstract String getAlias(String column) throws TableBuildException;
     }
 }

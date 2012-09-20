@@ -14,7 +14,7 @@
 
     <bean id="configuration" class="com.plexq.migration.app.Configuration">
         <property name="dumpPath" value="data/scala"/>
-        <property name="packageName" value="model"/>
+        <property name="packageName" value="models.jeves"/>
     </bean>
 
     <!--
